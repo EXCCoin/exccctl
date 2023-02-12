@@ -1,4 +1,5 @@
 /dcrctl
+/exccctl
 .vscode
 .idea
 *.orig
