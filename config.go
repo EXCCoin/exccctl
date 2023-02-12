@@ -17,13 +17,11 @@ import (
 	"runtime"
 	"strings"
 
-	"github.com/decred/dcrd/dcrjson/v4"
-	"github.com/decred/dcrd/dcrutil/v4"
-
-	wallettypes "decred.org/dcrwallet/v2/rpc/jsonrpc/types"
-	dcrdtypes "github.com/decred/dcrd/rpc/jsonrpc/types/v3"
-
-	flags "github.com/jessevdk/go-flags"
+	wallettypes "github.com/EXCCoin/exccwallet/v2/rpc/jsonrpc/types"
+	"github.com/EXCCoin/exccd/dcrjson/v4"
+	dcrutil "github.com/EXCCoin/exccd/dcrutil/v4"
+	dcrdtypes "github.com/EXCCoin/exccd/rpc/jsonrpc/types/v3"
+	"github.com/jessevdk/go-flags"
 )
 
 const (
@@ -39,18 +37,16 @@ const (
 	authTypeClientCert = "clientcert"
 )
 
-var (
-	dcrdHomeDir            = dcrutil.AppDataDir("dcrd", false)
-	dcrctlHomeDir          = dcrutil.AppDataDir("dcrctl", false)
-	dcrwalletHomeDir       = dcrutil.AppDataDir("dcrwallet", false)
-	defaultConfigFile      = filepath.Join(dcrctlHomeDir, "dcrctl.conf")
-	defaultClientCertFile  = filepath.Join(dcrctlHomeDir, "client.pem")
-	defaultClientKeyFile   = filepath.Join(dcrctlHomeDir, "client-key.pem")
-	defaultRPCServer       = "localhost"
-	defaultWalletRPCServer = "localhost"
-	defaultRPCCertFile     = filepath.Join(dcrdHomeDir, "rpc.cert")
-	defaultWalletCertFile  = filepath.Join(dcrwalletHomeDir, "rpc.cert")
-)
+var dcrdHomeDir = dcrutil.AppDataDir("exccd", false)
+var dcrctlHomeDir = dcrutil.AppDataDir("exccctl", false)
+var dcrwalletHomeDir = dcrutil.AppDataDir("exccwallet", false)
+var defaultConfigFile = filepath.Join(dcrctlHomeDir, "exccctl.conf")
+var defaultClientCertFile = filepath.Join(dcrctlHomeDir, "client.pem")
+var defaultClientKeyFile = filepath.Join(dcrctlHomeDir, "client-key.pem")
+var defaultRPCServer = "localhost"
+var defaultWalletRPCServer = "localhost"
+var defaultRPCCertFile = filepath.Join(dcrdHomeDir, "rpc.cert")
+var defaultWalletCertFile = filepath.Join(dcrwalletHomeDir, "rpc.cert")
 
 // listCommands categorizes and lists all of the usable commands along with
 // their one-line usage.
@@ -238,10 +234,10 @@ func fileExists(name string) bool {
 // line options.
 //
 // The configuration proceeds as follows:
-// 	1) Start with a default config with sane settings
-// 	2) Pre-parse the command line to check for an alternative config file
-// 	3) Load configuration file overwriting defaults with any specified options
-// 	4) Parse CLI options and overwrite/add any specified options
+//  1. Start with a default config with sane settings
+//  2. Pre-parse the command line to check for an alternative config file
+//  3. Load configuration file overwriting defaults with any specified options
+//  4. Parse CLI options and overwrite/add any specified options
 //
 // The above results in functioning properly without any config settings
 // while still allowing the user to override settings with config files and
