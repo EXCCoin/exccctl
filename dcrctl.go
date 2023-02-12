@@ -16,9 +16,9 @@ import (
 	"path/filepath"
 	"strings"
 
-	wallettypes "github.com/EXCCoin/exccwallet/v2/rpc/jsonrpc/types"
 	"github.com/EXCCoin/exccd/dcrjson/v4"
 	dcrdtypes "github.com/EXCCoin/exccd/rpc/jsonrpc/types/v3"
+	wallettypes "github.com/EXCCoin/exccwallet/v2/rpc/jsonrpc/types"
 )
 
 const (

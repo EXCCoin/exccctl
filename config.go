@@ -17,10 +17,10 @@ import (
 	"runtime"
 	"strings"
 
-	wallettypes "github.com/EXCCoin/exccwallet/v2/rpc/jsonrpc/types"
 	"github.com/EXCCoin/exccd/dcrjson/v4"
 	dcrutil "github.com/EXCCoin/exccd/dcrutil/v4"
 	dcrdtypes "github.com/EXCCoin/exccd/rpc/jsonrpc/types/v3"
+	wallettypes "github.com/EXCCoin/exccwallet/v2/rpc/jsonrpc/types"
 	"github.com/jessevdk/go-flags"
 )
 
