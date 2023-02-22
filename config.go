@@ -393,7 +393,7 @@ func loadConfig() (*config, []string, error) {
 func createDefaultConfigFile(destinationPath string) error {
 	// Nothing to do when there is no existing dcrd conf file at the default
 	// path to extract the details from.
-	dcrdConfigPath := filepath.Join(dcrdHomeDir, "dcrd.conf")
+	dcrdConfigPath := filepath.Join(dcrdHomeDir, "exccd.conf")
 	if !fileExists(dcrdConfigPath) {
 		return nil
 	}
