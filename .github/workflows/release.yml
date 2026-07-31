@@ -1,0 +1,198 @@
+name: Release
+
+# Build every asset from the tagged commit and execute each binary on its
+# target operating system and architecture before publishing the release.
+
+on:
+  push:
+    tags: ['v2.*']
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    name: Validate release source
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Check out the tagged commit
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - name: Set up Go
+        uses: actions/setup-go@4a3601121dd01d1626a1e23e37211e3254c1c06c # v6.4.0
+        with:
+          go-version-file: 'go.mod'
+          cache: true
+      - name: Validate source
+        shell: bash
+        run: |
+          set -eux
+          test "$(head -1 go.mod)" = 'module github.com/EXCCoin/exccctl/v2'
+          test ! -e go.work
+          test ! -e go.work.sum
+          ! grep -n -E 'github.com/EXCCoin/exccd.*-2023' go.mod
+          go mod tidy
+          git diff --exit-code -- go.mod go.sum
+          go test -count=1 ./...
+          go vet ./...
+
+  build:
+    name: Build ${{ matrix.goos }}/${{ matrix.goarch }}
+    needs: validate
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: ubuntu-24.04
+            goos: linux
+            goarch: amd64
+            goamd64: v1
+            extension: tar.gz
+            exe: ''
+          - runner: ubuntu-24.04-arm
+            goos: linux
+            goarch: arm64
+            goarm64: v8.0
+            extension: tar.gz
+            exe: ''
+          - runner: windows-2025
+            goos: windows
+            goarch: amd64
+            goamd64: v1
+            extension: zip
+            exe: .exe
+          - runner: windows-11-arm
+            goos: windows
+            goarch: arm64
+            goarm64: v8.0
+            extension: zip
+            exe: .exe
+          - runner: macos-26-intel
+            goos: darwin
+            goarch: amd64
+            goamd64: v1
+            extension: tar.gz
+            exe: ''
+          - runner: macos-26
+            goos: darwin
+            goarch: arm64
+            goarm64: v8.0
+            extension: tar.gz
+            exe: ''
+    steps:
+      - name: Check out the tagged commit
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - name: Set up Go
+        uses: actions/setup-go@4a3601121dd01d1626a1e23e37211e3254c1c06c # v6.4.0
+        with:
+          go-version-file: 'go.mod'
+          cache: true
+      - name: Build
+        shell: bash
+        env:
+          CGO_ENABLED: '0'
+          GOOS: ${{ matrix.goos }}
+          GOARCH: ${{ matrix.goarch }}
+          GOAMD64: ${{ matrix.goamd64 }}
+          GOARM64: ${{ matrix.goarm64 }}
+          GOWORK: 'off'
+        run: |
+          set -eux
+          VERSION="${GITHUB_REF_NAME#v}"
+          ASSET_NAME="exccctl-${GITHUB_REF_NAME}-${GOOS}-${GOARCH}"
+          BINARY="dist/${ASSET_NAME}/exccctl${{ matrix.exe }}"
+          echo "VERSION=${VERSION}" >> "$GITHUB_ENV"
+          echo "ASSET_NAME=${ASSET_NAME}" >> "$GITHUB_ENV"
+          echo "BINARY=${BINARY}" >> "$GITHUB_ENV"
+          mkdir -p "dist/${ASSET_NAME}"
+          go build -buildvcs=false -trimpath \
+            -ldflags "-s -w -X main.Version=${VERSION}" \
+            -o "${BINARY}" .
+      - name: Verify the binary reports the tagged version
+        shell: bash
+        run: |
+          set -eu
+          reported=$("${BINARY}" --version | head -1)
+          echo "reported: ${reported}"
+          case "${reported}" in
+            *"version ${VERSION} "*) ;;
+            *) echo "::error::binary reports '${reported}', tag is '${VERSION}'"; exit 1 ;;
+          esac
+      - name: Add build information
+        shell: bash
+        env:
+          GOOS: ${{ matrix.goos }}
+          GOARCH: ${{ matrix.goarch }}
+        run: |
+          set -eu
+          cp LICENSE "dist/${ASSET_NAME}/"
+          {
+            echo "Tag: ${GITHUB_REF_NAME}"
+            echo "Commit: ${GITHUB_SHA}"
+            echo "Target: ${GOOS}/${GOARCH}"
+            echo "Go: $(go version)"
+            echo
+            go version -m "${BINARY}"
+          } > "dist/${ASSET_NAME}/BUILDINFO.txt"
+      - name: Package Unix archive
+        if: runner.os != 'Windows'
+        shell: bash
+        run: tar -C dist -czf "dist/${ASSET_NAME}.tar.gz" "${ASSET_NAME}"
+      - name: Package Windows archive
+        if: runner.os == 'Windows'
+        shell: bash
+        working-directory: dist
+        run: 7z a "${ASSET_NAME}.zip" "${ASSET_NAME}"
+      - name: Upload archive
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: exccctl-${{ matrix.goos }}-${{ matrix.goarch }}
+          path: dist/${{ env.ASSET_NAME }}.${{ matrix.extension }}
+          if-no-files-found: error
+          compression-level: 0
+
+  publish:
+    name: Publish release
+    needs: build
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - name: Download archives
+        uses: actions/download-artifact@70fc10c6e5e1ce46ad2ea6f2b72d43f7d47b13c3 # v8.0.0
+        with:
+          path: dist
+          merge-multiple: true
+      - name: Generate checksums and manifest
+        working-directory: dist
+        run: |
+          set -eu
+          sha256sum exccctl-* > SHA256SUMS
+          cat > MANIFEST.md <<EOF
+          # exccctl ${GITHUB_REF_NAME}
+
+          | | |
+          |---|---|
+          | Tag | \`${GITHUB_REF_NAME}\` |
+          | Commit | \`${GITHUB_SHA}\` |
+          | Built by | \`${GITHUB_REPOSITORY}\` run [${GITHUB_RUN_ID}](${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}) |
+          | Targets | Linux, Windows, and macOS on amd64 and arm64 |
+
+          Every binary was built without CGO and executed with \`--version\` on
+          its target operating system and architecture. Each archive includes
+          its license and embedded Go module build information.
+
+          \`\`\`
+          $(cat SHA256SUMS)
+          \`\`\`
+          EOF
+      - name: Publish
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          gh release create "${GITHUB_REF_NAME}" \
+            --title "${GITHUB_REF_NAME}" \
+            --notes-file dist/MANIFEST.md \
+            --verify-tag \
+            dist/exccctl-* dist/SHA256SUMS dist/MANIFEST.md
