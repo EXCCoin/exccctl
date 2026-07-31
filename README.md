@@ -3,7 +3,7 @@ exccctl
 
 [![Build Status](https://github.com/EXCCoin/exccctl/workflows/Build%20and%20Test/badge.svg)](https://github.com/EXCCoin/exccctl/actions)
 [![ISC License](https://img.shields.io/badge/license-ISC-blue.svg)](http://copyfree.org)
-[![Go Report Card](https://goreportcard.com/badge/github.com/EXCCoin/exccctl)](https://goreportcard.com/report/github.com/EXCCoin/exccctl)
+[![Go Report Card](https://goreportcard.com/badge/github.com/EXCCoin/exccctl/v2)](https://goreportcard.com/report/github.com/EXCCoin/exccctl/v2)
 
 exccctl is a command-line client for interacting with the JSON-RPC servers of
 [exccd](https://github.com/EXCCoin/exccd) and
