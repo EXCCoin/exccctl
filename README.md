@@ -28,12 +28,18 @@ changes may be written to a config file in a platform-specific location:
 
 ## Build and installation
 
-Development build can be performed by running `go install` in a
-locally checked-out repository.
+Install the latest release with:
 
-Appending `@master` to this will perform a release build using the latest code
-from the master branch.  This may be useful to execute RPC methods not yet found
-in the latest Exchangecoin release.
+```
+$ go install github.com/EXCCoin/exccctl/v2@v2.8.0
+```
+
+Development builds may be installed from a local checkout with `go install`, or
+from the master branch with:
+
+```
+$ go install github.com/EXCCoin/exccctl/v2@master
+```
 
 ## Developing
 
@@ -43,20 +49,14 @@ exccctl supporting these changes.  Due to exccctl being built around
 package-global method registrations and reflection, supporting these changes
 only requires building with the updated packages.  To perform this, module
 replacements may be utilized to point to development versions of exccd and
-exccwallet in your build environment:
+exccwallet in your build environment.  A workspace avoids modifying `go.mod`:
 
 ```
-$ go mod edit -replace=github.com/EXCCoin/exccd/rpc/jsonrpc/types/v2=../exccd/rpc/jsonrpc/types
-$ go mod edit -replace=github.com/EXCCoin/exccwallet/v2=../exccwallet
+$ go work init .
+$ go work use ../exccd/dcrjson ../exccd/dcrutil ../exccd/rpc/jsonrpc/types ../exccwallet
 ```
 
-These replaces should be removed prior to committing any updated module
-requires:
-
-```
-$ go mod edit -dropreplace=github.com/EXCCoin/exccd/rpc/jsonrpc/types/v2
-$ go mod edit -dropreplace=github.com/EXCCoin/exccd/v2
-```
+Do not commit the generated `go.work` or `go.work.sum` files.
 
 ## Contact
 
