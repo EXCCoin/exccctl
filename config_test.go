@@ -7,6 +7,7 @@ package main
 import (
 	"os"
 	"path/filepath"
+	"runtime"
 	"testing"
 )
 
@@ -58,12 +59,14 @@ func TestCreateDefaultConfigFile(t *testing.T) {
 	if got, want := string(content), "rpcuser=user\nrpcpass=pass\n"; got != want {
 		t.Fatalf("got %q, want %q", got, want)
 	}
-	info, err := os.Stat(destination)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if got, want := info.Mode().Perm(), os.FileMode(0600); got != want {
-		t.Fatalf("mode is %o, want %o", got, want)
+	if runtime.GOOS != "windows" {
+		info, err := os.Stat(destination)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if got, want := info.Mode().Perm(), os.FileMode(0600); got != want {
+			t.Fatalf("mode is %o, want %o", got, want)
+		}
 	}
 	if err := createDefaultConfigFile(destination); err == nil {
 		t.Fatal("existing credential file was overwritten")
