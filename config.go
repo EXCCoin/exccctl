@@ -1,5 +1,5 @@
 // Copyright (c) 2013-2015 The btcsuite developers
-// Copyright (c) 2015-2020 The Decred developers
+// Copyright (c) 2015-2023 The Decred developers
 // Use of this source code is governed by an ISC
 // license that can be found in the LICENSE file.
 
@@ -8,7 +8,7 @@ package main
 import (
 	"errors"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net"
 	"os"
 	"os/user"
@@ -119,14 +119,14 @@ type config struct {
 	RPCServer       string `short:"s" long:"rpcserver" description:"RPC server to connect to"`
 	WalletRPCServer string `short:"w" long:"walletrpcserver" description:"Wallet RPC server to connect to"`
 	RPCCert         string `short:"c" long:"rpccert" description:"RPC server certificate chain for validation"`
-	PrintJSON       bool   `short:"j" long:"json" description:"Print json messages sent and received"`
+	PrintJSON       bool   `short:"j" long:"json" description:"Print JSON messages sent and received"`
 	NoTLS           bool   `long:"notls" description:"Disable TLS"`
 	Proxy           string `long:"proxy" description:"Connect via SOCKS5 proxy (eg. 127.0.0.1:9050)"`
 	ProxyUser       string `long:"proxyuser" description:"Username for proxy server"`
 	ProxyPass       string `long:"proxypass" default-mask:"-" description:"Password for proxy server"`
 	TestNet         bool   `long:"testnet" description:"Connect to testnet"`
 	SimNet          bool   `long:"simnet" description:"Connect to the simulation test network"`
-	TLSSkipVerify   bool   `long:"skipverify" description:"Do not verify tls certificates (not recommended!)"`
+	TLSSkipVerify   bool   `long:"skipverify" description:"Do not verify TLS certificates (not recommended!)"`
 	Wallet          bool   `long:"wallet" description:"Connect to wallet"`
 
 	AuthType   string `long:"authtype" description:"The authorization type in use by the target server" choice:"basic" choice:"clientcert" default:"basic"`
@@ -404,7 +404,7 @@ func createDefaultConfigFile(destinationPath string) error {
 		return err
 	}
 	defer dcrdConfigFile.Close()
-	content, err := ioutil.ReadAll(dcrdConfigFile)
+	content, err := io.ReadAll(dcrdConfigFile)
 	if err != nil {
 		return err
 	}
@@ -437,16 +437,19 @@ func createDefaultConfigFile(destinationPath string) error {
 		return err
 	}
 
-	// Create the destination file and write the rpcuser and rpcpass to it
+	// Create the destination file without following or overwriting an existing
+	// path, since it contains RPC credentials.
 	dest, err := os.OpenFile(destinationPath,
-		os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0600)
+		os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0600)
 	if err != nil {
 		return err
 	}
-	defer dest.Close()
 
-	dest.WriteString(fmt.Sprintf("rpcuser=%s\nrpcpass=%s",
-		string(userSubmatches[1]), string(passSubmatches[1])))
-
-	return nil
+	_, err = fmt.Fprintf(dest, "rpcuser=%s\nrpcpass=%s\n",
+		userSubmatches[1], passSubmatches[1])
+	if err != nil {
+		dest.Close()
+		return err
+	}
+	return dest.Close()
 }
