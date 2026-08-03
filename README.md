@@ -31,7 +31,7 @@ changes may be written to a config file in a platform-specific location:
 Install the latest release with:
 
 ```
-$ go install github.com/EXCCoin/exccctl/v2@v2.8.0
+$ go install github.com/EXCCoin/exccctl/v2@v2.8.1
 ```
 
 Development builds may be installed from a local checkout with `go install`, or
